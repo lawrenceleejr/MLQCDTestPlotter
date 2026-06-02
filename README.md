@@ -37,10 +37,11 @@ are the two models.
 
 Each panel also shows:
 
-* the **total weighted integral** of the stack,
-* a **power-law fit** `N(m) ∝ m^(−n)` on the falling tail (default range
-  800–2500 GeV, set by `SLOPE_FIT_RANGE`), drawn as a dashed black line. The
-  fitted exponent `n` and its statistical uncertainty are printed in the panel.
+* the **weighted integral above the fit-range lower bound** (default `m > 500`
+  GeV), so the tail population is comparable across cuts,
+* an **exponential fit** `N(m) ∝ exp(−m/τ)` on the falling tail (default range
+  500–2500 GeV, set by `SLOPE_FIT_RANGE`), drawn as a dashed black line. The
+  fitted scale `τ` and its statistical uncertainty are printed in the panel.
 
 ## Running
 
