@@ -35,6 +35,13 @@ selections so you can see how a few simple kinematic cuts reshape it:
 Output is a 4×2 grid (`avg_mass_stacked.pdf`): rows are cut scenarios, columns
 are the two models.
 
+Each panel also shows:
+
+* the **total weighted integral** of the stack,
+* a **power-law fit** `N(m) ∝ m^(−n)` on the falling tail (default range
+  800–2500 GeV, set by `SLOPE_FIT_RANGE`), drawn as a dashed black line. The
+  fitted exponent `n` and its statistical uncertainty are printed in the panel.
+
 ## Running
 
 ```bash

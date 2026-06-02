@@ -54,6 +54,10 @@ XMIN, XMAX, NBINS = 0, 3000, 60
 MASS_ASYM_MAX = 0.25   # |m0-m1| / (m0+m1) below this → "similar masses"
 DPHI_MIN      = 2.5    # |Δφ| above this (radians, ≤π) → "back to back"
 
+# Power-law fit on the falling tail: N(m) ∝ m^(-n).
+# Fit done as linear regression of log(N) vs log(m) over bin centres in this range.
+SLOPE_FIT_RANGE = (800.0, 2500.0)
+
 OUTPUT_FILE = "avg_mass_stacked.pdf"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -96,6 +100,27 @@ CUT_SCENARIOS = [
 ]
 
 
+def fit_power_law(centers, total_counts, fit_range):
+    """Linear fit of log(N) vs log(m) → slope n such that N(m) ∝ m^(-n).
+    Returns (n, sigma_n, x_fit, y_fit) or (None, None, None, None) on failure."""
+    lo, hi = fit_range
+    mask = (centers >= lo) & (centers <= hi) & (total_counts > 0)
+    if mask.sum() < 3:
+        return None, None, None, None
+
+    x = np.log(centers[mask])
+    y = np.log(total_counts[mask])
+    # weights from Poisson-ish errors on counts: σ(log N) ≈ 1/√N
+    w = np.sqrt(total_counts[mask])
+    coeffs, cov = np.polyfit(x, y, deg=1, w=w, cov=True)
+    slope, intercept = coeffs
+    sigma_slope = float(np.sqrt(cov[0, 0]))
+
+    x_fit = np.linspace(lo, hi, 50)
+    y_fit = np.exp(intercept) * x_fit ** slope
+    return -slope, sigma_slope, x_fit, y_fit
+
+
 def stack_one_panel(ax, per_sample, cut_fn, title):
     bin_edges = np.linspace(XMIN, XMAX, NBINS + 1)
     centers   = 0.5 * (bin_edges[:-1] + bin_edges[1:])
@@ -123,6 +148,22 @@ def stack_one_panel(ax, per_sample, cut_fn, title):
     ax.set_yscale("log")
     ax.set_title(title, fontsize=11)
     ax.tick_params(axis="both", labelsize=9)
+
+    total_counts = np.sum(hists, axis=0)
+    integral     = float(total_counts.sum())
+
+    n, sigma_n, x_fit, y_fit = fit_power_law(centers, total_counts, SLOPE_FIT_RANGE)
+    if n is not None:
+        ax.plot(x_fit, y_fit, color="k", linestyle="--", linewidth=1.4)
+        slope_str = f"n = {n:.2f} ± {sigma_n:.2f}"
+    else:
+        slope_str = "n = (fit failed)"
+
+    info = (f"$\\int$ = {integral:.3g}\n"
+            f"slope ({int(SLOPE_FIT_RANGE[0])}–{int(SLOPE_FIT_RANGE[1])} GeV): {slope_str}")
+    ax.text(0.97, 0.97, info, transform=ax.transAxes, ha="right", va="top",
+            fontsize=9, bbox=dict(facecolor="white", alpha=0.8,
+                                  edgecolor="0.7", boxstyle="round,pad=0.3"))
 
 
 def main():
